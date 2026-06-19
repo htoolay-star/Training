@@ -7,11 +7,6 @@ using Microsoft.Extensions.Options;
 using Shared.Auth;
 using Shared.Constants;
 using Shared.Extensions;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Train.Domain.Features.AuthFeature
 {

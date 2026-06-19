@@ -1,7 +1,7 @@
-using System.Net.Http.Json;
-using System.Text.Json;
 using Contracts;
 using Contracts.Auth;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Training.Blazor.Services;
 

@@ -3,7 +3,6 @@ using Contracts.Auth;
 using Microsoft.AspNetCore.Components.Authorization;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using static System.Net.WebRequestMethods;
 
 namespace Training.Blazor.Services;
 
