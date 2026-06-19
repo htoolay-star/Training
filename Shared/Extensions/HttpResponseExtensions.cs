@@ -25,5 +25,17 @@ namespace Shared.Extensions
             };
             response.Cookies.Append("refresh_token", tokens.RefreshToken, refreshOptions);
         }
+
+        public static void DeleteAuthCookies(this HttpResponse response)
+        {
+            var options = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            };
+            response.Cookies.Delete("access_token", options);
+            response.Cookies.Delete("refresh_token", options);
+        }
     }
 }

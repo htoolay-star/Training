@@ -65,8 +65,7 @@ namespace Train.Domain.Features.AuthFeature
                 return Execute(Result<LoginResponse>.SetResponse(result.Code, result.Type, safeData));
             }
 
-            Response.Cookies.Delete("access_token");
-            Response.Cookies.Delete("refresh_token");
+            Response.DeleteAuthCookies();
 
             return Execute(result);
         }
@@ -81,8 +80,7 @@ namespace Train.Domain.Features.AuthFeature
                 await _authService.LogoutAsync(refreshToken, cancellationToken);
             }
 
-            Response.Cookies.Delete("access_token");
-            Response.Cookies.Delete("refresh_token");
+            Response.DeleteAuthCookies();
 
             return Execute(Result<bool>.SetResponse(
                 Shared.Constants.ConstantResponseCode.AuthLogoutSuccess,
