@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using Microsoft.AspNetCore.Components.WebAssembly.Http;
 
 namespace Training.Blazor.Services
 {
@@ -6,6 +7,7 @@ namespace Training.Blazor.Services
     {
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            request.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
             byte[]? contentBytes = null;
             if (request.Content is not null)
             {

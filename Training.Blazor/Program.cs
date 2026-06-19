@@ -8,15 +8,13 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
+var apiBaseUrl = builder.Configuration.GetValue<string>("ApiBaseUrl") ?? "http://localhost:5254";
+
 builder.Services.AddTransient<AuthInterceptor>();
-
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-
-builder.Services.AddHttpClient("TrainingApi", client => client.BaseAddress = new Uri("http://localhost:5254"));
 builder.Services.AddScoped(sp =>
 {
-    var factory = sp.GetRequiredService<IHttpClientFactory>();
-    return factory.CreateClient("TrainingApi");
+    var interceptor = sp.GetRequiredService<AuthInterceptor>();
+    return new HttpClient(interceptor) { BaseAddress = new Uri(apiBaseUrl) };
 });
 
 builder.Services.AddAuthorizationCore();
