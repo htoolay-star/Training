@@ -11,7 +11,7 @@ namespace Shared.Extensions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.None,
                 Expires = tokens.AccessTokenExpiresAt
             };
             response.Cookies.Append("access_token", tokens.AccessToken, accessOptions);
@@ -20,7 +20,7 @@ namespace Shared.Extensions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.None,
                 Expires = tokens.RefreshTokenExpiresAt
             };
             response.Cookies.Append("refresh_token", tokens.RefreshToken, refreshOptions);

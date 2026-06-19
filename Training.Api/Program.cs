@@ -71,7 +71,9 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddCors(o => o.AddPolicy("AllowClient", p =>
-    p.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()));
+    p.AllowAnyHeader().AllowAnyMethod()
+     .WithOrigins("https://localhost:7100")
+     .AllowCredentials()));
 
 var app = builder.Build();
 
