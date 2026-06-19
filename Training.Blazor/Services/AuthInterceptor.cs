@@ -23,6 +23,7 @@ namespace Training.Blazor.Services
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
                 var refreshRequest = new HttpRequestMessage(HttpMethod.Post, "api/Auth/Refresh");
+                refreshRequest.SetBrowserRequestCredentials(BrowserRequestCredentials.Include);
                 var refreshResponse = await base.SendAsync(refreshRequest, cancellationToken).ConfigureAwait(false);
 
                 if (refreshResponse.IsSuccessStatusCode)
