@@ -54,6 +54,9 @@ namespace Train.Domain.Features.AuthFeature
             if (user.LockoutEndAt.HasValue && user.LockoutEndAt.Value > now)
                 return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthAccountLocked, EnumRespType.BadRequest);
 
+            if (!user.IsActive)
+                return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthAccountInactive, EnumRespType.BadRequest);
+
             if (!_passwordHasher.Verify(user.PasswordHash, request.Password))
             {
                 user.AccessFailedCount++;
@@ -69,9 +72,6 @@ namespace Train.Domain.Features.AuthFeature
                     justLocked ? ConstantResponseCode.AuthAccountLocked : ConstantResponseCode.AuthInvalidCredentials,
                     EnumRespType.BadRequest);
             }
-
-            if (!user.IsActive)
-                return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthAccountInactive, EnumRespType.BadRequest);
 
             // Success — reset failure state, stamp login, issue tokens.
             user.AccessFailedCount = 0;
