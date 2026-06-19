@@ -49,11 +49,17 @@
                 var uri = new Uri(Navigation.Uri);
                 var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
                 var returnUrl = query["returnUrl"] ?? "";
-                Navigation.NavigateTo(string.IsNullOrEmpty(returnUrl) ? "/" : Uri.UnescapeDataString(returnUrl), forceLoad: true);
+                Navigation.NavigateTo(string.IsNullOrEmpty(returnUrl) ? "/" : Uri.UnescapeDataString(returnUrl));
             }
             else
             {
-                errorMessage = result?.Message ?? "Login failed.";
+                errorMessage = result?.Code switch
+                {
+                    "AuthInvalidCredentials" => "Invalid username or password.",
+                    "AuthAccountLocked"      => "Account is locked due to too many failed attempts. Try again later.",
+                    "AuthAccountInactive"    => "Account has been deactivated. Contact an administrator.",
+                    _                        => "Login failed."
+                };
             }
         }
         catch (Exception ex)
