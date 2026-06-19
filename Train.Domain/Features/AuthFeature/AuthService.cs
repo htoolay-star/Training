@@ -3,6 +3,7 @@ using Contracts.Auth;
 using Database.AppDbContextModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Shared.Auth;
 using Shared.Constants;
 using Shared.Extensions;
@@ -16,24 +17,26 @@ namespace Train.Domain.Features.AuthFeature
 {
     public sealed class AuthService : IAuthService
     {
-        private const int MaxFailedAttempts = 5;
-        private const int LockoutMinutes = 15;
-
         private readonly AppDbContext _db;
         private readonly IPasswordHasher _passwordHasher;
         private readonly IJwtTokenService _jwt;
         private readonly ILogger<AuthService> _logger;
+        private readonly int _maxFailedAttempts;
+        private readonly int _lockoutMinutes;
 
         public AuthService(
             AppDbContext db,
             IPasswordHasher passwordHasher,
             IJwtTokenService jwt,
-            ILogger<AuthService> logger)
+            ILogger<AuthService> logger,
+            IOptions<AuthOptions> authOptions)
         {
             _db = db;
             _passwordHasher = passwordHasher;
             _jwt = jwt;
             _logger = logger;
+            _maxFailedAttempts = authOptions.Value.MaxFailedAttempts;
+            _lockoutMinutes = authOptions.Value.LockoutMinutes;
         }
 
         public async Task<Result<AuthTokenResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken)
@@ -54,10 +57,10 @@ namespace Train.Domain.Features.AuthFeature
             if (!_passwordHasher.Verify(user.PasswordHash, request.Password))
             {
                 user.AccessFailedCount++;
-                var justLocked = user.AccessFailedCount >= MaxFailedAttempts;
+                var justLocked = user.AccessFailedCount >= _maxFailedAttempts;
                 if (justLocked)
                 {
-                    user.LockoutEndAt = now.AddMinutes(LockoutMinutes);
+                    user.LockoutEndAt = now.AddMinutes(_lockoutMinutes);
                     user.AccessFailedCount = 0;
                 }
                 await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -93,7 +96,23 @@ namespace Train.Domain.Features.AuthFeature
                 .FirstOrDefaultAsync(t => t.TokenHash == hash, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (token is null || !token.IsActive || token.AdminUser is null)
+            if (token is null)
+                return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthInvalidToken, EnumRespType.BadRequest);
+
+            // Token reuse detection — if a revoked token is presented, revoke all user tokens
+            if (token.RevokedAt is not null)
+            {
+                await _db.RefreshTokens
+                    .Where(t => t.AdminUserId == token.AdminUserId && t.RevokedAt == null)
+                    .ExecuteUpdateAsync(
+                        setter => setter.SetProperty(t => t.RevokedAt, DateTimeHelper.CurrentMyanmarDateTime),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthInvalidToken, EnumRespType.BadRequest);
+            }
+
+            if (!token.IsActive || token.AdminUser is null)
                 return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthInvalidToken, EnumRespType.BadRequest);
 
             var user = token.AdminUser;
