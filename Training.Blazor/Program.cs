@@ -14,6 +14,7 @@ builder.Services.AddTransient<AuthInterceptor>();
 builder.Services.AddScoped(sp =>
 {
     var interceptor = sp.GetRequiredService<AuthInterceptor>();
+    interceptor.InnerHandler = new HttpClientHandler();
     return new HttpClient(interceptor) { BaseAddress = new Uri(apiBaseUrl) };
 });
 

@@ -3,6 +3,7 @@ using Contracts.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Base;
+using Shared.Constants;
 using Shared.Extensions;
 using System;
 using System.Collections.Generic;
@@ -93,8 +94,8 @@ namespace Train.Domain.Features.AuthFeature
         [HttpGet("Me")]
         public IActionResult GetCurrentUser()
         {
-            var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
-            var roleCode = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+            var userName = User.FindFirst(ConstantClaimCode.UserName)?.Value ?? "";
+            var roleCode = User.FindFirst(ConstantClaimCode.RoleCode)?.Value ?? "";
 
             var safeData = new LoginResponse
             {

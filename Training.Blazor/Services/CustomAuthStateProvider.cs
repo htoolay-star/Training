@@ -26,7 +26,7 @@ public sealed class CustomAuthStateProvider : AuthenticationStateProvider
             {
                 var result = await response.Content.ReadFromJsonAsync<Result<LoginResponse>>();
 
-                if (result is not null && result.IsSuccess && result.Data is not null)
+                if (result is not null && result.IsSuccess && result.Data is not null && !string.IsNullOrEmpty(result.Data.UserName))
                 {
                     var claims = new List<Claim>
                     {

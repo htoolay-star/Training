@@ -12,7 +12,8 @@
             <AuthorizeView>
                 <Authorized>
                     <span class="me-2">Welcome, @context.User.Identity?.Name</span>
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="Logout">Logout</button>
+
+                    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="Logout">Logout</button>
                 </Authorized>
                 <NotAuthorized>
                     <a href="/login" class="btn btn-outline-primary btn-sm">Login</a>
@@ -30,6 +31,7 @@
     private async Task Logout()
     {
         await ApiClient.LogoutAsync();
-        Navigation.NavigateTo("/", forceLoad: true);
+
+        Navigation.NavigateTo("/login");
     }
 }
