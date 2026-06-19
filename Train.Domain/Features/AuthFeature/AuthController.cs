@@ -65,6 +65,9 @@ namespace Train.Domain.Features.AuthFeature
                 return Execute(Result<LoginResponse>.SetResponse(result.Code, result.Type, safeData));
             }
 
+            Response.Cookies.Delete("access_token");
+            Response.Cookies.Delete("refresh_token");
+
             return Execute(result);
         }
 
