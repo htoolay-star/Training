@@ -11,7 +11,7 @@ namespace Train.Domain.Features.AuthFeature
     public interface IAuthService
     {
         Task<Result<AuthTokenResponse>> LoginAsync(LoginRequest request, CancellationToken cancellationToken);
-        Task<Result<AuthTokenResponse>> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken);
-        Task<Result<bool>> LogoutAsync(LogoutRequest request, CancellationToken cancellationToken);
+        Task<Result<AuthTokenResponse>> RefreshAsync(string refreshToken, CancellationToken cancellationToken);
+        Task<Result<bool>> LogoutAsync(string refreshToken, CancellationToken cancellationToken);
     }
 }

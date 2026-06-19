@@ -1,0 +1,68 @@
+@page "/login"
+@using Contracts.Auth
+@inject ApiClient ApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>Login</PageTitle>
+
+<h3>Login</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" />
+
+    <div class="mb-3">
+        <label for="UserName" class="form-label">User Name</label>
+        <InputText id="UserName" class="form-control" @bind-Value="loginModel.UserName" disabled="@isLoading" />
+    </div>
+
+    <div class="mb-3">
+        <label for="Password" class="form-label">Password</label>
+        <InputText id="Password" type="password" class="form-control" @bind-Value="loginModel.Password" disabled="@isLoading" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@isLoading">
+        @(isLoading ? "Logging in..." : "Login")
+    </button>
+</EditForm>
+
+@code {
+    private LoginRequest loginModel = new();
+    private string? errorMessage;
+    private bool isLoading;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var result = await ApiClient.LoginAsync(loginModel);
+            if (result is { IsSuccess: true })
+            {
+                var uri = new Uri(Navigation.Uri);
+                var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+                var returnUrl = query["returnUrl"] ?? "";
+                Navigation.NavigateTo(string.IsNullOrEmpty(returnUrl) ? "/" : Uri.UnescapeDataString(returnUrl), forceLoad: true);
+            }
+            else
+            {
+                errorMessage = result?.Message ?? "Login failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

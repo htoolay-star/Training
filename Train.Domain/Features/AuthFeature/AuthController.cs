@@ -1,7 +1,9 @@
-﻿using Contracts.Auth;
+﻿using Contracts;
+using Contracts.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Base;
+using Shared.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,21 +26,86 @@ namespace Train.Domain.Features.AuthFeature
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
         {
             var result = await _authService.LoginAsync(request, cancellationToken);
+
+            if (result.IsSuccess && result.Data is not null)
+            {
+                Response.AddAuthCookies(result.Data);
+
+                var safeData = new LoginResponse
+                {
+                    UserName = result.Data.UserName,
+                    RoleCode = result.Data.RoleCode
+                };
+
+                return Execute(Result<LoginResponse>.SetResponse(result.Code, result.Type, safeData));
+            }
+
             return Execute(result);
         }
 
         [HttpPost("Refresh")]
-        public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
         {
-            var result = await _authService.RefreshAsync(request, cancellationToken);
+            var refreshToken = Request.Cookies["refresh_token"];
+
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized();
+
+            var result = await _authService.RefreshAsync(refreshToken, cancellationToken);
+
+            if (result.IsSuccess && result.Data is not null)
+            {
+                Response.AddAuthCookies(result.Data);
+
+                var safeData = new LoginResponse
+                {
+                    UserName = result.Data.UserName,
+                    RoleCode = result.Data.RoleCode
+                };
+                return Execute(Result<LoginResponse>.SetResponse(result.Code, result.Type, safeData));
+            }
+
             return Execute(result);
         }
 
         [HttpPost("Logout")]
-        public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)
+        public async Task<IActionResult> Logout(CancellationToken cancellationToken)
         {
-            var result = await _authService.LogoutAsync(request, cancellationToken);
-            return Execute(result);
+            var refreshToken = Request.Cookies["refresh_token"];
+
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await _authService.LogoutAsync(refreshToken, cancellationToken);
+            }
+
+            Response.Cookies.Delete("access_token");
+            Response.Cookies.Delete("refresh_token");
+
+            return Execute(Result<bool>.SetResponse(
+                Shared.Constants.ConstantResponseCode.AuthLogoutSuccess,
+                EnumRespType.Success,
+                true
+                ));
+        }
+
+        [Authorize]
+        [HttpGet("Me")]
+        public IActionResult GetCurrentUser()
+        {
+            var userName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+            var roleCode = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+
+            var safeData = new LoginResponse
+            {
+                UserName = userName,
+                RoleCode = roleCode
+            };
+
+            return Execute(Result<LoginResponse>.SetResponse(
+                Shared.Constants.ConstantResponseCode.AuthLoginSuccess,
+                EnumRespType.Success,
+                safeData
+            ));
         }
     }
 }

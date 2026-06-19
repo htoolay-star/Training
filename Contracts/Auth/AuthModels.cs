@@ -28,11 +28,18 @@ namespace Contracts.Auth
         public string RefreshToken { get; set; } = string.Empty;
     }
 
+    public class LoginResponse
+    {
+        public string UserName { get; set; } = string.Empty;
+        public string RoleCode { get; set; } = string.Empty;
+    }
+
     public class AuthTokenResponse
     {
         public string AccessToken { get; set; } = string.Empty;
         public DateTime AccessTokenExpiresAt { get; set; }
         public string RefreshToken { get; set; } = string.Empty;
+        public DateTime RefreshTokenExpiresAt { get; set; }
         public string TokenType { get; set; } = "Bearer";
 
         public string UserName { get; set; } = string.Empty;

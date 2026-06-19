@@ -83,9 +83,9 @@ namespace Train.Domain.Features.AuthFeature
             return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthLoginSuccess, EnumRespType.Success, response);
         }
 
-        public async Task<Result<AuthTokenResponse>> RefreshAsync(RefreshTokenRequest request, CancellationToken cancellationToken)
+        public async Task<Result<AuthTokenResponse>> RefreshAsync(string refreshToken, CancellationToken cancellationToken)
         {
-            var hash = _jwt.HashRefreshToken(request.RefreshToken);
+            var hash = _jwt.HashRefreshToken(refreshToken);
 
             var token = await _db.RefreshTokens
                 .Include(t => t.AdminUser)!
@@ -109,9 +109,9 @@ namespace Train.Domain.Features.AuthFeature
             return Result<AuthTokenResponse>.SetResponse(ConstantResponseCode.AuthLoginSuccess, EnumRespType.Success, response);
         }
 
-        public async Task<Result<bool>> LogoutAsync(LogoutRequest request, CancellationToken cancellationToken)
+        public async Task<Result<bool>> LogoutAsync(string refreshToken, CancellationToken cancellationToken)
         {
-            var hash = _jwt.HashRefreshToken(request.RefreshToken);
+            var hash = _jwt.HashRefreshToken(refreshToken);
             var token = await _db.RefreshTokens
                 .FirstOrDefaultAsync(t => t.TokenHash == hash && t.RevokedAt == null, cancellationToken)
                 .ConfigureAwait(false);
@@ -153,6 +153,7 @@ namespace Train.Domain.Features.AuthFeature
                 AccessToken = access.Token,
                 AccessTokenExpiresAt = access.ExpiresAt,
                 RefreshToken = refresh.RawToken,
+                RefreshTokenExpiresAt = refresh.ExpiresAt,
                 TokenType = "Bearer",
                 UserName = userName,
                 RoleCode = roleCode
