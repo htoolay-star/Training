@@ -1,0 +1,106 @@
+﻿@using Training.Blazor.Services.Role
+@inject IRoleApiClient RoleApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="model.Code" Label="Role Code"
+                          Disabled="@isEdit" Required="true" RequiredError="Code is required" Class="mb-4"  />
+
+            <MudTextField @bind-Value="model.Name" Label="Role Name"
+                          Required="true" RequiredError="Name is required" Class="mb-4" />
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton OnClick="Cancel" Class="me-2">Cancel</MudButton>
+                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="@isSaving">
+                    @(isSaving ? "Saving..." : "Save")
+                </MudButton>
+            </div>
+        </MudForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public long RoleId { get; set; }
+
+    private RoleFormModel model = new();
+    private bool isEdit => RoleId > 0;
+    private bool isSaving = false;
+    private MudForm _form = default!;
+
+    public class RoleFormModel
+    {
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (isEdit)
+        {
+            var result = await RoleApi.GetRoleByIdAsync(RoleId);
+            if (result is { IsSuccess: true, Data: not null })
+            {
+                model.Code = result.Data.Code;
+                model.Name = result.Data.Name;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            isSaving = false;
+            return;
+        }
+
+        try
+        {
+            if (isEdit)
+            {
+                var request = new UpdateRoleRequest { Id = RoleId, Name = model.Name };
+                var result = await RoleApi.UpdateRoleAsync(request);
+                if (result is { IsSuccess: true })
+                {
+                    Snackbar.Add("Role updated successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to update role.", Severity.Error);
+                }
+            }
+            else
+            {
+                var request = new CreateRoleRequest { Code = model.Code, Name = model.Name };
+                var result = await RoleApi.CreateRoleAsync(request);
+                if (result is { IsSuccess: true })
+                {
+                    Snackbar.Add("Role created successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add(result?.Message ?? "Failed to create role.", Severity.Error);
+                }
+            }
+        }
+        catch
+        {
+            Snackbar.Add("An unexpected error occurred.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

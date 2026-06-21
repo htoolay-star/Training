@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
 using Training.Blazor;
 using Training.Blazor.Services;
+using Training.Blazor.Services.Role;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -24,6 +25,7 @@ builder.Services.AddScoped<CustomAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
     sp.GetRequiredService<CustomAuthStateProvider>());
 builder.Services.AddScoped<ApiClient>();
+builder.Services.AddScoped<IRoleApiClient, RoleApiClient>();
 builder.Services.AddMudServices();
 
 await builder.Build().RunAsync();

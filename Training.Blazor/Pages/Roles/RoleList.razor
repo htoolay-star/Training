@@ -1,0 +1,137 @@
+﻿@page "/roles"
+@using Training.Blazor.Services.Role
+@inject IRoleApiClient RoleApi
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Role Management</PageTitle>
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4 fw-bold">Role Management</MudText>
+
+<MudTable Items="@roles" Loading="@isLoading" Hover="true" Elevation="3" Breakpoint="Breakpoint.Sm">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            Create Role
+        </MudButton>
+    </ToolBarContent>
+    
+    <HeaderContent>
+        <MudTh>Code</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Type</MudTh>
+        <MudTh Style="text-align: right;">Actions</MudTh>
+    </HeaderContent>
+    
+    <RowTemplate>
+        <MudTd DataLabel="Code">@context.Code</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+        <MudTd DataLabel="Type">
+            @if (context.IsSystem)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">System</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Custom</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="Actions" Style="text-align: right;">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small" 
+                           OnClick="@(() => OpenEditDialog(context.Id))" Disabled="@context.IsSystem" />
+            
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" 
+                           OnClick="@(() => DeleteRole(context.Id, context.Name))" Disabled="@context.IsSystem" />
+        </MudTd>
+    </RowTemplate>
+    
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<RoleListDto> roles = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRolesAsync();
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            var result = await RoleApi.GetRolesAsync();
+
+            if (result is { IsSuccess: true, Data: not null })
+            {
+                roles = result.Data;
+            }
+            else
+            {
+                Snackbar.Add("Failed to load roles.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("An error occurred while loading roles.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<RoleDialog>("Create Role", options);
+        var result = dialog is not null ? await dialog.Result : null;
+
+        if (result is { Canceled: false })
+        {
+            await LoadRolesAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(long id)
+    {
+        var parameters = new DialogParameters<RoleDialog> { { x => x.RoleId, id } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<RoleDialog>("Edit Role", parameters, options);
+        var result = dialog is not null ? await dialog.Result : null;
+
+        if (result is { Canceled: false })
+        {
+            await LoadRolesAsync();
+        }
+    }
+
+    private async Task DeleteRole(long id, string name)
+    {
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete role '{name}'?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirm == true)
+        {
+            var result = await RoleApi.DeleteRoleAsync(id);
+            if (result is { IsSuccess: true })
+            {
+                Snackbar.Add("Role deleted successfully.", Severity.Success);
+                await LoadRolesAsync();
+            }
+            else
+            {
+                Snackbar.Add(result?.Message ?? "Failed to delete role.", Severity.Error);
+            }
+        }
+    }
+}
