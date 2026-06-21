@@ -1,0 +1,152 @@
+@using Training.Blazor.Services.AdminUser
+@using Training.Blazor.Services.Role
+@inject IAdminUserApiClient AdminUserApi
+@inject IRoleApiClient RoleApi
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+
+            <MudTextField @bind-Value="model.UserName" Label="User Name"
+                          Disabled="@isEdit" Required="true" RequiredError="User name is required" Class="mb-4" />
+
+            <MudTextField @bind-Value="model.Email" Label="Email" InputType="InputType.Email"
+                          Required="true" RequiredError="Email is required" Class="mb-4" />
+
+            @if (!isEdit)
+            {
+                <MudTextField @bind-Value="model.Password" Label="Password" InputType="InputType.Password"
+                              Required="true" RequiredError="Password is required" Class="mb-4" />
+            }
+
+            <MudSelect @bind-Value="model.SelectedRoleId" Label="Role" Required="true" RequiredError="Role is required"
+                       Class="mb-4">
+                @foreach (var role in roles)
+                {
+                    <MudSelectItem Value="@role.Id">@role.Name</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSwitch @bind-Value="model.IsActive" Color="Color.Primary" Class="mb-4">
+                Active
+            </MudSwitch>
+
+            <div class="d-flex justify-end mt-4">
+                <MudButton OnClick="Cancel" Class="me-2">Cancel</MudButton>
+                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="@isSaving">
+                    @(isSaving ? "Saving..." : "Save")
+                </MudButton>
+            </div>
+        </MudForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public long UserId { get; set; }
+
+    private UserFormModel model = new();
+    private bool isEdit => UserId > 0;
+    private bool isSaving = false;
+    private MudForm _form = default!;
+    private List<RoleListDto> roles = new();
+
+    public class UserFormModel
+    {
+        public string UserName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Password { get; set; } = "";
+        public long SelectedRoleId { get; set; }
+        public bool IsActive { get; set; } = true;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var roleResult = await RoleApi.GetRolesAsync();
+        if (roleResult is { IsSuccess: true, Data: not null })
+        {
+            roles = roleResult.Data;
+        }
+
+        if (isEdit)
+        {
+            var result = await AdminUserApi.GetByIdAsync(UserId);
+            if (result is { IsSuccess: true, Data: not null })
+            {
+                model.UserName = result.Data.UserName;
+                model.Email = result.Data.Email;
+                model.SelectedRoleId = result.Data.RoleId;
+                model.IsActive = result.Data.IsActive;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        isSaving = true;
+
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            isSaving = false;
+            return;
+        }
+
+        try
+        {
+            if (isEdit)
+            {
+                var request = new UpdateAdminUserRequest
+                {
+                    Id = UserId,
+                    Email = model.Email,
+                    RoleId = model.SelectedRoleId,
+                    IsActive = model.IsActive
+                };
+                var result = await AdminUserApi.UpdateAsync(request);
+                if (result is { IsSuccess: true })
+                {
+                    Snackbar.Add("User updated successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to update user.", Severity.Error);
+                }
+            }
+            else
+            {
+                var request = new CreateAdminUserRequest
+                {
+                    UserName = model.UserName,
+                    Email = model.Email,
+                    Password = model.Password,
+                    RoleId = model.SelectedRoleId,
+                    IsActive = model.IsActive
+                };
+                var result = await AdminUserApi.CreateAsync(request);
+                if (result is { IsSuccess: true })
+                {
+                    Snackbar.Add("User created successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add(result?.Message ?? "Failed to create user.", Severity.Error);
+                }
+            }
+        }
+        catch
+        {
+            Snackbar.Add("An unexpected error occurred.", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

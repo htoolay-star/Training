@@ -1,0 +1,162 @@
+@page "/admin-users"
+@using Training.Blazor.Services.AdminUser
+@inject IAdminUserApiClient AdminUserApi
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Admin Users</PageTitle>
+
+<MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4 fw-bold">Admin Users</MudText>
+
+<MudTable Items="@users" Loading="@isLoading" Hover="true" Elevation="3" Breakpoint="Breakpoint.Sm">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">
+            Create User
+        </MudButton>
+    </ToolBarContent>
+
+    <HeaderContent>
+        <MudTh>User Name</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Role</MudTh>
+        <MudTh>Status</MudTh>
+        <MudTh>Last Login</MudTh>
+        <MudTh Style="text-align: right;">Actions</MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="User Name">@context.UserName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Role">@context.RoleName</MudTd>
+        <MudTd DataLabel="Status">
+            @if (context.IsActive)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Active</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">Inactive</MudChip>
+            }
+        </MudTd>
+        <MudTd DataLabel="Last Login">@(context.LastLoginAt?.ToString("g") ?? "-")</MudTd>
+        <MudTd DataLabel="Actions" Style="text-align: right;">
+
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Info" Size="Size.Small"
+                           OnClick="@(() => OpenEditDialog(context.Id))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.LockReset" Color="Color.Warning" Size="Size.Small"
+                           OnClick="@(() => OpenResetPasswordDialog(context.Id, context.UserName))" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                           OnClick="@(() => DeleteUser(context.Id, context.UserName))" />
+        </MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private List<AdminUserListDto> users = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            var result = await AdminUserApi.GetAllAsync();
+
+            if (result is { IsSuccess: true, Data: not null })
+            {
+                users = result.Data;
+            }
+            else
+            {
+                Snackbar.Add("Failed to load admin users.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("An error occurred while loading admin users.", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AdminUserDialog>("Create User", options);
+        var result = dialog is not null ? await dialog.Result : null;
+
+        if (result is { Canceled: false })
+        {
+            await LoadUsersAsync();
+        }
+    }
+
+    private async Task OpenEditDialog(long id)
+    {
+        var parameters = new DialogParameters<AdminUserDialog> { { x => x.UserId, id } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AdminUserDialog>("Edit User", parameters, options);
+        var result = dialog is not null ? await dialog.Result : null;
+
+        if (result is { Canceled: false })
+        {
+            await LoadUsersAsync();
+        }
+    }
+
+    private async Task OpenResetPasswordDialog(long id, string userName)
+    {
+        var parameters = new DialogParameters<AdminUserResetPasswordDialog>
+        {
+            { x => x.UserId, id },
+            { x => x.UserName, userName }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<AdminUserResetPasswordDialog>("Reset Password", parameters, options);
+        var result = dialog is not null ? await dialog.Result : null;
+
+        if (result is { Canceled: false })
+        {
+            Snackbar.Add("Password reset successfully.", Severity.Success);
+        }
+    }
+
+    private async Task DeleteUser(long id, string userName)
+    {
+        bool? confirm = await DialogService.ShowMessageBoxAsync(
+            "Confirm Delete",
+            $"Are you sure you want to delete user '{userName}'?",
+            yesText: "Delete", cancelText: "Cancel");
+
+        if (confirm == true)
+        {
+            var result = await AdminUserApi.DeleteAsync(id);
+            if (result is { IsSuccess: true })
+            {
+                Snackbar.Add("User deleted successfully.", Severity.Success);
+                await LoadUsersAsync();
+            }
+            else
+            {
+                Snackbar.Add(result?.Message ?? "Failed to delete user.", Severity.Error);
+            }
+        }
+    }
+}
