@@ -13,7 +13,7 @@
 
             <div class="d-flex justify-end mt-4">
                 <MudButton OnClick="Cancel" Class="me-2">Cancel</MudButton>
-                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="@isSaving">
+                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="@(isSaving || (isEdit && !hasChanges))">
                     @(isSaving ? "Saving..." : "Save")
                 </MudButton>
             </div>
@@ -30,6 +30,7 @@
     private bool isEdit => RoleId > 0;
     private bool isSaving = false;
     private MudForm _form = default!;
+    private string originalName = "";
 
     public class RoleFormModel
     {
@@ -46,6 +47,7 @@
             {
                 model.Code = result.Data.Code;
                 model.Name = result.Data.Name;
+                originalName = model.Name;
             }
         }
     }
@@ -101,6 +103,8 @@
             isSaving = false;
         }
     }
+
+    private bool hasChanges => !isEdit || model.Name != originalName;
 
     private void Cancel() => MudDialog.Cancel();
 }
