@@ -20,11 +20,11 @@
                               Required="true" RequiredError="Password is required" Class="mb-4" />
             }
 
-            <MudSelect @bind-Value="model.SelectedRoleId" Label="Role" Required="true" RequiredError="Role is required"
+            <MudSelect T="long?" @bind-Value="model.SelectedRoleId" Label="Role" Required="true" RequiredError="Role is required"
                        Placeholder="Select a role..." Class="mb-4">
                 @foreach (var role in roles)
                 {
-                    <MudSelectItem Value="@role.Id">@role.Name</MudSelectItem>
+                    <MudSelectItem Value="@((long?)role.Id)">@role.Name</MudSelectItem>
                 }
             </MudSelect>
 
