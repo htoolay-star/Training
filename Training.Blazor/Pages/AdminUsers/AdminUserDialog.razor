@@ -21,7 +21,7 @@
             }
 
             <MudSelect @bind-Value="model.SelectedRoleId" Label="Role" Required="true" RequiredError="Role is required"
-                       Class="mb-4">
+                       Placeholder="Select a role..." Class="mb-4">
                 @foreach (var role in roles)
                 {
                     <MudSelectItem Value="@role.Id">@role.Name</MudSelectItem>
@@ -58,7 +58,7 @@
         public string UserName { get; set; } = "";
         public string Email { get; set; } = "";
         public string Password { get; set; } = "";
-        public long SelectedRoleId { get; set; }
+        public long? SelectedRoleId { get; set; }
         public bool IsActive { get; set; } = true;
     }
 
@@ -102,7 +102,7 @@
                 {
                     Id = UserId,
                     Email = model.Email,
-                    RoleId = model.SelectedRoleId,
+                    RoleId = model.SelectedRoleId ?? 0,
                     IsActive = model.IsActive
                 };
                 var result = await AdminUserApi.UpdateAsync(request);
@@ -123,7 +123,7 @@
                     UserName = model.UserName,
                     Email = model.Email,
                     Password = model.Password,
-                    RoleId = model.SelectedRoleId,
+                    RoleId = model.SelectedRoleId ?? 0,
                     IsActive = model.IsActive
                 };
                 var result = await AdminUserApi.CreateAsync(request);
