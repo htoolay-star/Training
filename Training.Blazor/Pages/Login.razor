@@ -1,41 +1,87 @@
 @page "/login"
 @layout BlankLayout
+@attribute [AllowAnonymous]
+
 @using Contracts.Auth
 @inject ApiClient ApiClient
 @inject NavigationManager Navigation
+@inject ISnackbar Snackbar
 
-<PageTitle>Login</PageTitle>
+<PageTitle>Login - Training System</PageTitle>
 
-<h3>Login</h3>
+<MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary" Class="mb-6 fw-bold">
+    Welcome Back
+</MudText>
 
 @if (!string.IsNullOrEmpty(errorMessage))
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
 }
 
 <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
     <DataAnnotationsValidator />
-    <ValidationSummary class="text-danger" />
 
-    <div class="mb-3">
-        <label for="UserName" class="form-label">User Name</label>
-        <InputText id="UserName" class="form-control" @bind-Value="loginModel.UserName" disabled="@isLoading" />
-    </div>
+    <MudTextField @bind-Value="loginModel.UserName"
+                  Label="User Name"
+                  Variant="Variant.Outlined"
+                  Disabled="@isLoading"
+                  Class="mb-4"
+                  For="@(() => loginModel.UserName)" />
 
-    <div class="mb-3">
-        <label for="Password" class="form-label">Password</label>
-        <InputText id="Password" type="password" class="form-control" @bind-Value="loginModel.Password" disabled="@isLoading" />
-    </div>
+    <MudTextField @bind-Value="loginModel.Password"
+                  Label="Password"
+                  InputType="PasswordInput"
+                  Variant="Variant.Outlined"
+                  Disabled="@isLoading"
+                  Class="mb-6"
+                  For="@(() => loginModel.Password)"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@PasswordInputIcon"
+                  OnAdornmentClick="ButtonTestOnClick"
+                  AdornmentAriaLabel="Show Password" />
 
-    <button type="submit" class="btn btn-primary" disabled="@isLoading">
-        @(isLoading ? "Logging in..." : "Login")
-    </button>
+    <MudButton ButtonType="ButtonType.Submit"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               Size="Size.Large"
+               FullWidth="true"
+               Disabled="@isLoading">
+        @if (isLoading)
+        {
+            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" Color="Color.Surface" />
+            <span class="ms-2">Logging in...</span>
+        }
+        else
+        {
+            <span>Login</span>
+        }
+    </MudButton>
 </EditForm>
 
 @code {
     private LoginRequest loginModel = new();
     private string? errorMessage;
     private bool isLoading;
+
+    private bool isShowPassword;
+    private InputType PasswordInput = InputType.Password;
+    private string PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+
+    private void ButtonTestOnClick()
+    {
+        isShowPassword = !isShowPassword;
+
+        if (isShowPassword)
+        {
+            PasswordInputIcon = Icons.Material.Filled.Visibility;
+            PasswordInput = InputType.Text;
+        }
+        else
+        {
+            PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
+            PasswordInput = InputType.Password;
+        }
+    }
 
     private async Task HandleLogin()
     {
@@ -47,6 +93,8 @@
             var result = await ApiClient.LoginAsync(loginModel);
             if (result is { IsSuccess: true })
             {
+                Snackbar.Add("Login successful!", Severity.Success);
+
                 var uri = new Uri(Navigation.Uri);
                 var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
                 var returnUrl = query["returnUrl"] ?? "";
@@ -57,9 +105,9 @@
                 errorMessage = result?.Code switch
                 {
                     "AuthInvalidCredentials" => "Invalid username or password.",
-                    "AuthAccountLocked"      => "Account is locked due to too many failed attempts. Try again later.",
-                    "AuthAccountInactive"    => "Account has been deactivated. Contact an administrator.",
-                    _                        => "Login failed."
+                    "AuthAccountLocked" => "Account is locked due to too many failed attempts. Try again later.",
+                    "AuthAccountInactive" => "Account has been deactivated. Contact an administrator.",
+                    _ => "Login failed."
                 };
             }
         }

@@ -1,4 +1,11 @@
-﻿<CascadingAuthenticationState>
+﻿@using Training.Blazor.Theme
+
+<MudThemeProvider Theme="@TestTheme.GetTheme()" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<CascadingAuthenticationState>
     <Router AppAssembly="@typeof(App).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
