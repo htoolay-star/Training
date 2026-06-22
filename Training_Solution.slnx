@@ -4,5 +4,6 @@
   <Project Path="Shared/Shared.csproj" />
   <Project Path="Train.Domain/Train.Domain.csproj" />
   <Project Path="Training.Api/Training.Api.csproj" />
-  <Project Path="Training.Blazor/Training.Blazor.csproj" Id="f455d06f-cab0-4520-b2bf-ddc2b98460e6" />
+  <Project Path="Training.Blazor/Training.Blazor.csproj" />
+  <Project Path="WebApp\WebApp.csproj" Type="Classic C#" />
 </Solution>
