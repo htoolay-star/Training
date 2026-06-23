@@ -11,4 +11,7 @@ public sealed class ApiEndpoint
     // Role
     public static string Role { get; } = "api/Role";
     public static string RoleById(long id) => $"api/Role/{id}";
+    
+    //Admin
+    public static string Admin { get; } = "api/admin";
 }
