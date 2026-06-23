@@ -1,0 +1,16 @@
+@page "/login"
+@using Contracts.Auth
+@layout LoginLayout
+
+
+
+@code
+{
+    [SupplyParameterFromForm] private LoginRequest Model { get; set; } = new();
+    
+    [CascadingParameter] public HttpContext HttpContext { get; set; } = default!;
+    
+    [Inject] public NavigationManager NavigationManager { get; set; }
+    
+    
+}

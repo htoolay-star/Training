@@ -1,10 +1,24 @@
+using MudBlazor.Services;
 using WebApp.Components;
+using WebApp.Services;
+using WebApp.Services.Api;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddMudServices();
+
+builder.Services.AddHttpClient<ApiClient>(client =>
+{
+    var baseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7176/";
+    client.BaseAddress = new Uri(baseUrl);
+});
+
+// The single facade components inject for CRUD, dialogs, snackbars and navigation.
+builder.Services.AddScoped<InjectService>();
 
 var app = builder.Build();
 

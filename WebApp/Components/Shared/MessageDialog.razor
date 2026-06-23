@@ -1,0 +1,44 @@
+<MudDialog>
+    <DialogContent>
+        <div class="d-flex flex-column align-center text-center pa-4" style="gap: 12px;">
+            <MudIcon Icon="@Icon" Color="@Color" Size="Size.Large" />
+
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <MudText Typo="Typo.h6">@Title</MudText>
+            }
+
+            <MudText Typo="Typo.body1">@Message</MudText>
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="@Color" Variant="Variant.Filled" OnClick="Close">@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Message { get; set; } = string.Empty;
+    [Parameter] public string ButtonText { get; set; } = "OK";
+    [Parameter] public DialogType DialogType { get; set; } = DialogType.Info;
+
+    private Color Color => DialogType switch
+    {
+        DialogType.Success => Color.Success,
+        DialogType.Warning => Color.Warning,
+        DialogType.Error => Color.Error,
+        _ => Color.Info
+    };
+
+    private string Icon => DialogType switch
+    {
+        DialogType.Success => Icons.Material.Filled.CheckCircle,
+        DialogType.Warning => Icons.Material.Filled.Warning,
+        DialogType.Error => Icons.Material.Filled.Error,
+        _ => Icons.Material.Filled.Info
+    };
+
+    private void Close() => MudDialog.Close(DialogResult.Ok(true));
+}
