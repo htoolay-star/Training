@@ -13,7 +13,7 @@
 
         public EnumRespType Type { get; set; }
 
-        public T Data { get; set; } = default!;
+        public T? Data { get; set; } = default!;
 
         public EnumRespType GetEnumRespType() => Type;
 

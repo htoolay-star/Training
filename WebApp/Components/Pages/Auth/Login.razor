@@ -1,16 +1,72 @@
 @page "/login"
-@using Contracts.Auth
 @layout LoginLayout
+@using Contracts.Auth
+@using WebApp.Services.Auth
+@inject SessionManager Session
+@inject NavigationManager Nav
 
+<div class="login-card mx-auto">
+    <h4 class="text-center mb-1">Sign in</h4>
+    <p class="text-center text-muted mb-4">Welcome back, please log in to continue.</p>
 
+    <EditForm Model="Model" method="post" OnValidSubmit="SignIn" FormName="login">
+        <DataAnnotationsValidator />
+
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger py-2">@_error</div>
+        }
+
+        <div class="mb-3">
+            <label class="form-label">Username</label>
+            <InputText class="form-control" @bind-Value="Model.UserName" autocomplete="username" />
+            <ValidationMessage For="() => Model.UserName" class="text-danger small" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <InputText type="password" class="form-control" @bind-Value="Model.Password" autocomplete="current-password" />
+            <ValidationMessage For="() => Model.Password" class="text-danger small" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Sign in</button>
+    </EditForm>
+</div>
+
+<style>
+    .login-card {
+        max-width: 420px;
+        margin-top: 8vh;
+        background: #fff;
+        padding: 2rem;
+        border-radius: .5rem;
+        box-shadow: 0 .5rem 1.5rem rgba(0, 0, 0, .1);
+    }
+</style>
 
 @code
 {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
     [SupplyParameterFromForm] private LoginRequest Model { get; set; } = new();
-    
-    [CascadingParameter] public HttpContext HttpContext { get; set; } = default!;
-    
-    [Inject] public NavigationManager NavigationManager { get; set; }
-    
-    
+
+    private string? _error;
+
+    private async Task SignIn()
+    {
+        var result = await Session.SignInAsync(HttpContext, Model);
+        if (result.IsSuccess)
+        {
+            Nav.NavigateTo(PageUrl.Home);
+            return;
+        }
+
+        _error = result.Code switch
+        {
+            "AuthInvalidCredentials" => "Invalid username or password.",
+            "AuthAccountLocked" => "Your account is locked. Please try again later.",
+            "AuthAccountInactive" => "Your account is inactive. Contact an administrator.",
+            _ => string.IsNullOrWhiteSpace(result.Message) ? "Sign in failed. Please try again." : result.Message
+        };
+    }
+
 }

@@ -1,9 +1,9 @@
 ﻿@inherits LayoutComponentBase
 
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
+<MudThemeProvider @rendermode="InteractiveServer" />
+<MudPopoverProvider @rendermode="InteractiveServer" />
+<MudDialogProvider @rendermode="InteractiveServer" />
+<MudSnackbarProvider @rendermode="InteractiveServer" />
 
 <div class="page">
     <div class="sidebar">
@@ -12,7 +12,14 @@
 
     <main>
         <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+            <AuthorizeView>
+                <Authorized>
+                    <span class="me-3">@context.User.Identity?.Name</span>
+                    <form action="@PageUrl.Logout" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Sign out</button>
+                    </form>
+                </Authorized>
+            </AuthorizeView>
         </div>
 
         <article class="content px-4">

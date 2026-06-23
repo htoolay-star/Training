@@ -1,0 +1,120 @@
+@page "/role"
+@attribute [Authorize]
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@inject IDialogService DialogService
+
+<PageTitle>Roles</PageTitle>
+
+<MudPaper Class="pa-4" Elevation="1">
+    <div class="d-flex justify-space-between align-center mb-4 flex-wrap gap-2">
+        <MudText Typo="Typo.h5">Roles</MudText>
+        <div class="d-flex align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">New Role</MudButton>
+        </div>
+    </div>
+
+    <MudDataGrid T="RoleListDto"
+                 Items="@_roles"
+                 Loading="_loading"
+                 Hover="true"
+                 Dense="true"
+                 Filterable="false"
+                 Groupable="false"
+                 SortMode="SortMode.Single">
+        <Columns>
+            <PropertyColumn Property="x => x.Code" Title="Code" />
+            <PropertyColumn Property="x => x.Name" Title="Name" />
+            <TemplateColumn Title="Type" Sortable="false">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@(context.Item.IsSystem ? Color.Default : Color.Primary)">
+                        @(context.Item.IsSystem ? "System" : "Custom")
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Actions" Sortable="false" CellClass="d-flex justify-end">
+                <CellTemplate>
+                    @if (context.Item.IsSystem)
+                    {
+                        <MudTooltip Text="System roles can't be changed or deleted.">
+                            <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Default" />
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <MudIconButton Size="Size.Small" Color="Color.Primary"
+                                       Icon="@Icons.Material.Outlined.Edit"
+                                       OnClick="@(() => EditAsync(context.Item))" />
+                        <MudIconButton Size="Size.Small" Color="Color.Error"
+                                       Icon="@Icons.Material.Outlined.Delete"
+                                       OnClick="@(() => DeleteAsync(context.Item))" />
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <NoRecordsContent>
+            <MudText Align="Align.Center" Class="pa-6">No roles found.</MudText>
+        </NoRecordsContent>
+    </MudDataGrid>
+</MudPaper>
+
+@code {
+    private bool _loading;
+    private IReadOnlyList<RoleListDto> _roles = [];
+    private string _search = string.Empty;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        try
+        {
+            var result = await InjectService.GetAsync<List<RoleListDto>>(ApiEndpoint.Role);
+            if (result.IsSuccess)
+                _roles = result.Data ?? [];
+            else
+                InjectService.ShowErrorSnackbar(result.Message);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (await ShowRoleDialogAsync(null))
+            await LoadAsync();
+    }
+
+    private async Task EditAsync(RoleListDto role)
+    {
+        if (await ShowRoleDialogAsync(role))
+            await LoadAsync();
+    }
+
+    private async Task<bool> ShowRoleDialogAsync(RoleListDto? role)
+    {
+        var parameters = new DialogParameters<RoleDialog> { { x => x.Role, role } };
+        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, CloseButton = true };
+
+        var dialog = await DialogService.ShowAsync<RoleDialog>(role is null ? "New Role" : "Edit Role", parameters, options);
+        var result = await dialog.Result;
+        return result is { Canceled: false };
+    }
+
+    private async Task DeleteAsync(RoleListDto role)
+    {
+        if (!await InjectService.ConfirmDeleteAsync(role.Name))
+            return;
+
+        var deleted = await InjectService.SubmitAsync(
+            InjectService.DeleteAsync<bool>(ApiEndpoint.RoleById(role.Id)),
+            successMessage: "Role deleted.");
+
+        if (deleted)
+            await LoadAsync();
+    }
+}
