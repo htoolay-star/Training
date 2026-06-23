@@ -2,41 +2,41 @@ using Contracts;
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using WebApp.Components.Shared;
-using WebApp.Services.Api;
+using WebApp.Services.Auth;
 using WebApp.Services.Dialogs;
 
 namespace WebApp.Services;
 
 public sealed class InjectService
 {
-    private readonly ApiClient _api;
+    private readonly SessionManager _session;
     private readonly NavigationManager _navigation;
     private readonly IDialogService _dialog;
     private readonly ISnackbar _snackbar;
 
     public InjectService(
-        ApiClient api,
+        SessionManager session,
         NavigationManager navigation,
         IDialogService dialog,
         ISnackbar snackbar)
     {
-        _api = api;
+        _session = session;
         _navigation = navigation;
         _dialog = dialog;
         _snackbar = snackbar;
     }
 
     public Task<Result<T>> GetAsync<T>(string url, CancellationToken ct = default) =>
-        _api.GetAsync<T>(url, ct);
+        _session.SendAsync<T>(HttpMethod.Get, url, body: null, ct);
 
     public Task<Result<T>> CreateAsync<T>(string url, object body, CancellationToken ct = default) =>
-        _api.PostAsync<T>(url, body, ct);
+        _session.SendAsync<T>(HttpMethod.Post, url, body, ct);
 
     public Task<Result<T>> UpdateAsync<T>(string url, object body, CancellationToken ct = default) =>
-        _api.PutAsync<T>(url, body, ct);
+        _session.SendAsync<T>(HttpMethod.Put, url, body, ct);
 
     public Task<Result<T>> DeleteAsync<T>(string url, CancellationToken ct = default) =>
-        _api.DeleteAsync<T>(url, ct);
+        _session.SendAsync<T>(HttpMethod.Delete, url, body: null, ct);
 
     public async Task<bool> SubmitAsync<T>(Task<Result<T>> apiCall, string? successMessage = null)
     {
@@ -65,7 +65,6 @@ public sealed class InjectService
     public Task ShowErrorAsync(string message, string title = "Error") =>
         ShowMessageAsync(message, DialogType.Error, title);
 
-    /// <summary>Asks the user to confirm an action. Returns <c>true</c> if they confirmed.</summary>
     public async Task<bool> ConfirmAsync(
         string message,
         string title = "Are you sure?",
@@ -87,7 +86,6 @@ public sealed class InjectService
         return result is { Canceled: false, Data: true };
     }
 
-    /// <summary>Confirm dialog pre-worded for deletes. Returns <c>true</c> if confirmed.</summary>
     public Task<bool> ConfirmDeleteAsync(string? itemName = null) =>
         ConfirmAsync(
             message: itemName is null
@@ -152,13 +150,10 @@ public sealed class InjectService
 
     #region Navigation
 
-    /// <summary>Navigate to a URL. Set <paramref name="forceReload"/> for a full page reload.</summary>
     public void GoTo(string url, bool forceReload = false) => _navigation.NavigateTo(url, forceReload);
 
-    /// <summary>Reload the current page.</summary>
     public void Refresh(bool forceReload = false) => _navigation.Refresh(forceReload);
 
-    /// <summary>Current route relative to the app base, e.g. "admin/users".</summary>
     public string CurrentRelativePath => _navigation.ToBaseRelativePath(_navigation.Uri);
 
     #endregion

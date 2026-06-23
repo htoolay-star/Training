@@ -1,7 +1,10 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using MudBlazor.Services;
 using WebApp.Components;
 using WebApp.Services;
 using WebApp.Services.Api;
+using WebApp.Services.Auth;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,8 +19,35 @@ builder.Services.AddHttpClient<ApiClient>(client =>
     var baseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7176/";
     client.BaseAddress = new Uri(baseUrl);
 });
+builder.Services.AddHttpContextAccessor();
 
-// The single facade components inject for CRUD, dialogs, snackbars and navigation.
+builder.Services.AddSingleton<ITokenStore, TokenStore>();
+
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(option =>
+    {
+        option.LoginPath = "/login";
+        option.Cookie.Name = "Cookie_Auth";
+        option.SlidingExpiration = true;
+        option.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+
+        option.Events.OnValidatePrincipal = async context =>
+        {
+            var sessionId = context.Principal?.FindFirst(SessionManager.SessionIdClaim)?.Value;
+            var store = context.HttpContext.RequestServices.GetRequiredService<ITokenStore>();
+
+            if (sessionId is null || !store.Exists(sessionId))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            }
+        };
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddScoped<SessionManager>();
 builder.Services.AddScoped<InjectService>();
 
 var app = builder.Build();
@@ -31,9 +61,18 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseStaticFiles();
+
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
+
+app.MapPost(PageUrl.Logout, async (HttpContext http, SessionManager session) =>
+{
+    await session.SignOutAsync(http);
+    return Results.Redirect(PageUrl.Login);
+}).DisableAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
