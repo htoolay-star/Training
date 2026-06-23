@@ -27,7 +27,7 @@ builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(option =>
     {
-        option.LoginPath = "/login";
+        option.LoginPath = PageUrl.Login;
         option.Cookie.Name = "Cookie_Auth";
         option.SlidingExpiration = true;
         option.ExpireTimeSpan = TimeSpan.FromMinutes(30);
