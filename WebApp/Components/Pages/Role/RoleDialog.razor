@@ -1,0 +1,103 @@
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(IsEdit ? "Edit Role" : "New Role")</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+
+        <MudForm @ref="_form" Model="_model">
+            <MudTextField @bind-Value="_model.Code"
+                          Label="Code"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Code is required."
+                          MaxLength="50"
+                          Immediate="true"
+                          Disabled="IsEdit"
+                          HelperText="@(IsEdit ? "Code can't be changed after creation." : "A unique identifier, e.g. MANAGER.")" />
+
+            <MudTextField @bind-Value="_model.Name"
+                          Label="Name"
+                          Variant="Variant.Outlined"
+                          Required="true"
+                          RequiredError="Name is required."
+                          MaxLength="100"
+                          Immediate="true"
+                          Class="mt-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+            }
+            @(IsEdit ? "Save" : "Create")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public RoleListDto? Role { get; set; }
+
+    private MudForm _form = default!;
+    private readonly RoleFormModel _model = new();
+    private bool _saving;
+    private string? _error;
+
+    private bool IsEdit => Role is not null;
+
+    protected override void OnInitialized()
+    {
+        if (Role is null) return;
+        _model.Code = Role.Code;
+        _model.Name = Role.Name;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        _error = null;
+        try
+        {
+            var (isSuccess, code, message) = IsEdit
+                ? Reduce(await InjectService.UpdateAsync<RoleDetailDto>(
+                    ApiEndpoint.Role, new UpdateRoleRequest { Id = Role!.Id, Name = _model.Name.Trim() }))
+                : Reduce(await InjectService.CreateAsync<long>(
+                    ApiEndpoint.Role, new CreateRoleRequest { Code = _model.Code.Trim(), Name = _model.Name.Trim() }));
+
+            if (isSuccess)
+            {
+                InjectService.ShowSuccessSnackbar(IsEdit ? "Role updated." : "Role created.");
+                MudDialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            _error = message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private static (bool IsSuccess, string Code, string Message) Reduce<T>(Result<T> r) =>
+        (r.IsSuccess, r.Code, r.Message);
+
+    private sealed class RoleFormModel
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+}
